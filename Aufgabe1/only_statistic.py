@@ -21,7 +21,7 @@ def memory_usage() -> tuple:
 
 BLOCKSIZE = 2048
 MEMORY_SAMPLING_INTERVAL = 3
-EVERY_N_BLOCK = 2
+EVERY_N_BLOCK = 1
 
 
 def record_memory_usage():
@@ -78,27 +78,22 @@ def analyze_audio_block(block):
 def analyze_audio_blocks(audio_file):
     print(f"Initial memory usage: {memory_usage()} bytes")
     # Initialisierung der Liste zur Speicherung der Statistiken
-    stats_list = []
+    with open("statistics.csv", "w") as f:
+        f.write(
+            "block_start,mean,std,25th_percentile,50th_percentile,75th_percentile,freq_with_highest_amplitude,amplitude_of_freq_with_highest_amplitude\n"
+        )
 
     # Laden der Audiodatei
     y, sr = librosa.load(audio_file, sr=None)
 
-    results = [
-        analyze_audio_block((y[i : i + BLOCKSIZE], i))
-        for i in tqdm(range(0, len(y) - BLOCKSIZE, EVERY_N_BLOCK))
-    ]
-
-    # Filter out None results
-    stats_list = [stat for stat in results if stat is not None]
-
-    # write stats to csv
-    df = pd.DataFrame(stats_list)
-    df.to_csv("statistics.csv", index=False)
-    print(f"Memory usage after function: {memory_usage()} bytes")  # free memory
+    for i in tqdm(range(0, len(y) - BLOCKSIZE, EVERY_N_BLOCK)):
+        stats = analyze_audio_block((y[i : i + BLOCKSIZE], i))
+        if stats is not None:
+            with open("statistics.csv", "a") as f:
+                f.write(
+                    f"{stats['block_start']},{stats['mean']},{stats['std']},{stats['25th_percentile']},{stats['50th_percentile']},{stats['75th_percentile']},{stats['freq_with_highest_amplitude']},{stats['amplitude_of_freq_with_highest_amplitude']}\n"
+                )
     del y
-    del results
-    del stats_list
-    del df
     gc.collect()
 
 
