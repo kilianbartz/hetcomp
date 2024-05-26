@@ -37,7 +37,7 @@ def record_memory_usage():
         while not stop_mem_recording:
             elapsed_time = time.time() - start_time
             memory = memory_usage()
-            writer.writerow([elapsed_time, memory[0]])
+            writer.writerow([elapsed_time, memory])
             time.sleep(MEMORY_SAMPLING_INTERVAL)
 
 
