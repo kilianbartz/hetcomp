@@ -88,9 +88,9 @@ def analyze_audio_blocks(audio_file):
     slice_size = (len(y) - BLOCKSIZE) // NUM_SLICES
     slice_indices = [(i * slice_size, (i + 1) * slice_size) for i in range(NUM_SLICES)]
     slice_indices[-1] = (slice_indices[-1][0], len(y) - BLOCKSIZE)
-    for j in tqdm(range(NUM_SLICES)):
+    for j in range(NUM_SLICES):
         stats_list = []
-        for i in range(slice_indices[j][0], slice_indices[j][1]):
+        for i in tqdm(range(slice_indices[j][0], slice_indices[j][1])):
             stats = analyze_audio_block((y[i : i + BLOCKSIZE], i))
             if stats is not None:
                 stats_list.append(stats)
