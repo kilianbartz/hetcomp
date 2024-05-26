@@ -21,6 +21,7 @@ def memory_usage() -> tuple:
 
 BLOCKSIZE = 2048
 MEMORY_SAMPLING_INTERVAL = 3
+EVERY_N_BLOCK = 2
 
 
 def record_memory_usage():
@@ -84,7 +85,7 @@ def analyze_audio_blocks(audio_file):
 
     results = [
         analyze_audio_block((y[i : i + BLOCKSIZE], i))
-        for i in tqdm(range(0, len(y) - BLOCKSIZE, 5))
+        for i in tqdm(range(0, len(y) - BLOCKSIZE, EVERY_N_BLOCK))
     ]
 
     # Filter out None results
