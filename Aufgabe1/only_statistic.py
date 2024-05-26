@@ -22,7 +22,7 @@ def memory_usage() -> tuple:
 
 BLOCKSIZE = 2048
 MEMORY_SAMPLING_INTERVAL = 3
-NUM_SLICES = 2
+NUM_CHUNKS = 2
 
 
 def record_memory_usage():
@@ -84,12 +84,12 @@ def analyze_audio_blocks(audio_file):
 
     # Laden der Audiodatei
     y, sr = librosa.load(audio_file, sr=None)
-    slice_size = (len(y) - BLOCKSIZE) // NUM_SLICES
-    slice_indices = [(i * slice_size, (i + 1) * slice_size) for i in range(NUM_SLICES)]
-    slice_indices[-1] = (slice_indices[-1][0], len(y) - BLOCKSIZE)
-    for j in range(NUM_SLICES):
+    slice_size = (len(y) - BLOCKSIZE) // NUM_CHUNKS
+    chunk_indices = [(i * slice_size, (i + 1) * slice_size) for i in range(NUM_CHUNKS)]
+    chunk_indices[-1] = (chunk_indices[-1][0], len(y) - BLOCKSIZE)
+    for j in range(NUM_CHUNKS):
         stats_list = []
-        for i in tqdm(range(slice_indices[j][0], slice_indices[j][1])):
+        for i in tqdm(range(chunk_indices[j][0], chunk_indices[j][1])):
             stats = analyze_audio_block((y[i : i + BLOCKSIZE], i))
             if stats is not None:
                 stats_list.append(stats)
