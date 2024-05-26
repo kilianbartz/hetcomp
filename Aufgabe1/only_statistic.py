@@ -4,7 +4,6 @@ from multiprocessing import Pool
 import pandas as pd
 import psutil
 import os
-import tracemalloc
 import threading
 import time
 import csv
@@ -17,8 +16,7 @@ stop_mem_recording = False
 def memory_usage() -> tuple:
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
-    tracemalloc.get_traced_memory()
-    return mem_info.rss, *tracemalloc.get_traced_memory()
+    return mem_info.rss
 
 
 BLOCKSIZE = 2048
@@ -33,15 +31,13 @@ def record_memory_usage():
             [
                 "Time (s)",
                 "Memory Usage [PSUtil] (bytes)",
-                "Current Memory Usage [Tracemalloc] (bytes)",
-                "Peak Memory Usage [Tracemalloc] (bytes)",
             ]
         )
         start_time = time.time()
         while not stop_mem_recording:
             elapsed_time = time.time() - start_time
             memory = memory_usage()
-            writer.writerow([elapsed_time, memory[0], memory[1], memory[2]])
+            writer.writerow([elapsed_time, memory[0]])
             time.sleep(MEMORY_SAMPLING_INTERVAL)
 
 
@@ -88,7 +84,7 @@ def analyze_audio_blocks(audio_file):
 
     results = [
         analyze_audio_block((y[i : i + BLOCKSIZE], i))
-        for i in tqdm(range(0, len(y) - BLOCKSIZE))
+        for i in tqdm(range(0, len(y) - BLOCKSIZE, 5))
     ]
 
     # Filter out None results
@@ -109,7 +105,6 @@ def analyze_audio_blocks(audio_file):
 if __name__ == "__main__":
     for i in range(3):
         stop_mem_recording = False
-        tracemalloc.start()
         audio_file = "nicht_zu_laut_abspielen.wav"
 
         # Start memory recording thread
@@ -120,4 +115,3 @@ if __name__ == "__main__":
         stop_mem_recording = True
         # Stop memory recording thread
         memory_thread.join()
-        tracemalloc.stop()
