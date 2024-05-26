@@ -21,7 +21,7 @@ def memory_usage() -> tuple:
 
 BLOCKSIZE = 2048
 MEMORY_SAMPLING_INTERVAL = 3
-EVERY_N_BLOCK = 1
+NUM_SLICES = 2
 
 
 def record_memory_usage():
@@ -85,11 +85,17 @@ def analyze_audio_blocks(audio_file):
 
     # Laden der Audiodatei
     y, sr = librosa.load(audio_file, sr=None)
-
-    for i in tqdm(range(0, len(y) - BLOCKSIZE, EVERY_N_BLOCK)):
-        stats = analyze_audio_block((y[i : i + BLOCKSIZE], i))
-        if stats is not None:
-            with open("statistics.csv", "a") as f:
+    slice_size = (len(y) - BLOCKSIZE) // NUM_SLICES
+    slice_indices = [(i * slice_size, (i + 1) * slice_size) for i in range(NUM_SLICES)]
+    slice_indices[-1] = (slice_indices[-1][0], len(y) - BLOCKSIZE)
+    for j in tqdm(range(NUM_SLICES)):
+        stats_list = []
+        for i in range(slice_indices[j][0], slice_indices[j][1]):
+            stats = analyze_audio_block((y[i : i + BLOCKSIZE], i))
+            if stats is not None:
+                stats_list.append(stats)
+        with open("statistics.csv", "a") as f:
+            for stats in stats_list:
                 f.write(
                     f"{stats['block_start']},{stats['mean']},{stats['std']},{stats['25th_percentile']},{stats['50th_percentile']},{stats['75th_percentile']},{stats['freq_with_highest_amplitude']},{stats['amplitude_of_freq_with_highest_amplitude']}\n"
                 )
