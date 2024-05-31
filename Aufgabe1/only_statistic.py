@@ -69,7 +69,6 @@ def analyze_audio_block(block, sr):
         (int(xf[max_indices[i]]), int(magnitude_db[max_indices[i]]))
         for i in range(to_index)
     ]
-    print(f"Major frequencies: {major_frequencies}")
 
     # Speichern der Statistiken
     stats = {
