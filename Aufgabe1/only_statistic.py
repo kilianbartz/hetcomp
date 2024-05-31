@@ -99,7 +99,6 @@ def analyze_audio_blocks(audio_file):
             stats = analyze_audio_block((y[i : i + BLOCKSIZE], i), sr)
             if stats is not None and len(stats["major_frequencies"]) > 0:
                 stats_list.append(stats)
-            break
         df = pd.DataFrame(stats_list)
         df.to_csv("statistics.csv", mode="a", header=False, index=False)
         del df
