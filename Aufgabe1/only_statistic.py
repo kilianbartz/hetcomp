@@ -23,6 +23,7 @@ def memory_usage() -> tuple:
 BLOCKSIZE = 2048
 MEMORY_SAMPLING_INTERVAL = 3
 NUM_CHUNKS = 2
+DB_THRESHOLD = 45
 
 
 def record_memory_usage():
@@ -55,6 +56,8 @@ def analyze_audio_block(block):
     # Berechnung der Fourier-Transformierten
     Y = np.fft.fft(y_block)
     Y_magnitude = np.abs(Y)[: BLOCKSIZE // 2]
+    Y_db = librosa.amplitude_to_db(Y_magnitude, ref=np.max)
+    major_frequencies = np.where(Y_db > DB_THRESHOLD)[0]
 
     # Berechnung der statistischen Werte
     mean_val = np.mean(Y_magnitude)
@@ -69,8 +72,7 @@ def analyze_audio_block(block):
         "25th_percentile": quantiles[0],
         "50th_percentile": quantiles[1],
         "75th_percentile": quantiles[2],
-        "freq_with_highest_amplitude": np.argmax(Y_magnitude),
-        "amplitude_of_freq_with_highest_amplitude": np.max(Y_magnitude),
+        "major_frequenzies": major_frequencies,
     }
 
     return stats
@@ -93,6 +95,7 @@ def analyze_audio_blocks(audio_file):
             stats = analyze_audio_block((y[i : i + BLOCKSIZE], i))
             if stats is not None:
                 stats_list.append(stats)
+            break
         df = pd.DataFrame(stats_list)
         df.to_csv("statistics.csv", mode="a", header=False, index=False)
     del y
