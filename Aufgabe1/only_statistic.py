@@ -22,8 +22,8 @@ def memory_usage() -> tuple:
 
 BLOCKSIZE = 2205  # 0.05 seconds
 MEMORY_SAMPLING_INTERVAL = 3
-NUM_CHUNKS = 4
-DB_THRESHOLD = 55
+NUM_CHUNKS = 2
+DB_THRESHOLD = 50
 NUM_RUNS = 1
 
 
