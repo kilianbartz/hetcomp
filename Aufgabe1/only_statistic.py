@@ -112,7 +112,7 @@ if __name__ == "__main__":
     try:
         for i in range(NUM_RUNS):
             stop_mem_recording = False
-            audio_file = "C:\\Users\\kilia\\OneDrive\\Dokumente\\Studium\\HetComp\\Aufgabe1\\nicht_zu_laut_abspielen.wav"
+            audio_file = "nicht_zu_laut_abspielen.wav"
 
             # Start memory recording thread
             memory_thread = threading.Thread(target=record_memory_usage)
