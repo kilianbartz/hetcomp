@@ -78,6 +78,7 @@ class AudioAnalyzerApp:
 
         time_window = BLOCKSIZE  # 50ms window
         sample_window = int(self.sample_rate * time_window)
+        print(f"Sample window: {sample_window}")
         start = max(0, pos - sample_window // 2)
         end = min(len(self.samples), start + sample_window)
 

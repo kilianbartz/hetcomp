@@ -20,10 +20,10 @@ def memory_usage() -> tuple:
     return mem_info.rss
 
 
-BLOCKSIZE = 2048
+BLOCKSIZE = 2205  # 0.05 seconds
 MEMORY_SAMPLING_INTERVAL = 3
 NUM_CHUNKS = 4
-DB_THRESHOLD = 50
+DB_THRESHOLD = 55
 NUM_RUNS = 1
 
 
@@ -60,14 +60,16 @@ def analyze_audio_block(block, sr):
     xf = np.linspace(0.0, sr / 2.0, N // 2)
     magnitude = 2.0 / N * np.abs(yf[: N // 2])
     magnitude_db = 20 * np.log10(magnitude)
+    max_magnitudes = np.sort(magnitude_db)[::-1]
     max_indices = np.argsort(magnitude_db)[::-1]
     # to_index should be the first index where the magnitude is smaller than the threshold
-    to_index = np.where(magnitude_db < DB_THRESHOLD)[0][0]
+    to_index = np.where(max_magnitudes < DB_THRESHOLD)[0][0]
     major_frequencies = [
         # floor the frequency to the nearest integer
         (int(xf[max_indices[i]]), int(magnitude_db[max_indices[i]]))
         for i in range(to_index)
     ]
+    print(f"Major frequencies: {major_frequencies}")
 
     # Speichern der Statistiken
     stats = {
@@ -95,8 +97,9 @@ def analyze_audio_blocks(audio_file):
         stats_list = []
         for i in tqdm(range(chunk_indices[j][0], chunk_indices[j][1])):
             stats = analyze_audio_block((y[i : i + BLOCKSIZE], i), sr)
-            if stats is not None:
+            if stats is not None and len(stats["major_frequencies"]) > 0:
                 stats_list.append(stats)
+            break
         df = pd.DataFrame(stats_list)
         df.to_csv("statistics.csv", mode="a", header=False, index=False)
         del df
@@ -111,7 +114,7 @@ if __name__ == "__main__":
     try:
         for i in range(NUM_RUNS):
             stop_mem_recording = False
-            audio_file = "nicht_zu_laut_abspielen.wav"
+            audio_file = "C:\\Users\\kilia\\OneDrive\\Dokumente\\Studium\\HetComp\\Aufgabe1\\nicht_zu_laut_abspielen.wav"
 
             # Start memory recording thread
             memory_thread = threading.Thread(target=record_memory_usage)
