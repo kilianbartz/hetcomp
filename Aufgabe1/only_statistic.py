@@ -22,9 +22,9 @@ def memory_usage() -> tuple:
 
 BLOCKSIZE = 2205  # 0.05 seconds
 MEMORY_SAMPLING_INTERVAL = 3
-NUM_CHUNKS = 2
+NUM_CHUNKS = 1
 DB_THRESHOLD = 50
-NUM_RUNS = 1
+NUM_RUNS = 3
 
 
 def record_memory_usage():
@@ -82,9 +82,16 @@ def analyze_audio_block(block, sr):
 
 def analyze_audio_blocks(audio_file):
     print(f"Initial memory usage: {memory_usage()} bytes")
-    # empty the file if it already exists
-    if os.path.exists("statistics.csv"):
-        os.remove("statistics.csv")
+    # initialize csv header
+    with open("statistics.csv", mode="w") as file:
+        writer = csv.writer(file)
+        writer.writerow(
+            [
+                "block_start",
+                "block_end",
+                "major_frequencies",
+            ]
+        )
 
     # Laden der Audiodatei
     sr, y = wavfile.read(audio_file)
