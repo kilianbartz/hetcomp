@@ -1,5 +1,5 @@
 import numpy as np
-import librosa
+from scipy.io import wavfile
 from multiprocessing import Pool
 import pandas as pd
 import psutil
@@ -22,8 +22,9 @@ def memory_usage() -> tuple:
 
 BLOCKSIZE = 2048
 MEMORY_SAMPLING_INTERVAL = 3
-NUM_CHUNKS = 2
-DB_THRESHOLD = 45
+NUM_CHUNKS = 4
+DB_THRESHOLD = 50
+NUM_RUNS = 1
 
 
 def record_memory_usage():
@@ -44,7 +45,7 @@ def record_memory_usage():
             time.sleep(MEMORY_SAMPLING_INTERVAL)
 
 
-def analyze_audio_block(block):
+def analyze_audio_block(block, sr):
 
     # Get the current block
     y_block, idx = block
@@ -54,25 +55,25 @@ def analyze_audio_block(block):
         return None
 
     # Berechnung der Fourier-Transformierten
-    Y = np.fft.fft(y_block)
-    Y_magnitude = np.abs(Y)[: BLOCKSIZE // 2]
-    Y_db = librosa.amplitude_to_db(Y_magnitude, ref=np.max)
-    major_frequencies = np.where(Y_db > DB_THRESHOLD)[0]
-
-    # Berechnung der statistischen Werte
-    mean_val = np.mean(Y_magnitude)
-    std_val = np.std(Y_magnitude)
-    quantiles = np.percentile(Y_magnitude, [25, 50, 75])
+    N = len(y_block)
+    yf = np.fft.fft(y_block)
+    xf = np.linspace(0.0, sr / 2.0, N // 2)
+    magnitude = 2.0 / N * np.abs(yf[: N // 2])
+    magnitude_db = 20 * np.log10(magnitude)
+    max_indices = np.argsort(magnitude_db)[::-1]
+    # to_index should be the first index where the magnitude is smaller than the threshold
+    to_index = np.where(magnitude_db < DB_THRESHOLD)[0][0]
+    major_frequencies = [
+        # floor the frequency to the nearest integer
+        (int(xf[max_indices[i]]), int(magnitude_db[max_indices[i]]))
+        for i in range(to_index)
+    ]
 
     # Speichern der Statistiken
     stats = {
         "block_start": idx,
-        "mean": mean_val,
-        "std": std_val,
-        "25th_percentile": quantiles[0],
-        "50th_percentile": quantiles[1],
-        "75th_percentile": quantiles[2],
-        "major_frequenzies": major_frequencies,
+        "block_end": idx + BLOCKSIZE,
+        "major_frequencies": major_frequencies,
     }
 
     return stats
@@ -85,34 +86,44 @@ def analyze_audio_blocks(audio_file):
         os.remove("statistics.csv")
 
     # Laden der Audiodatei
-    y, sr = librosa.load(audio_file, sr=None)
+    sr, y = wavfile.read(audio_file)
+    y = y[:, 0]  # Convert to mono if stereo
     slice_size = (len(y) - BLOCKSIZE) // NUM_CHUNKS
     chunk_indices = [(i * slice_size, (i + 1) * slice_size) for i in range(NUM_CHUNKS)]
     chunk_indices[-1] = (chunk_indices[-1][0], len(y) - BLOCKSIZE)
     for j in range(NUM_CHUNKS):
         stats_list = []
         for i in tqdm(range(chunk_indices[j][0], chunk_indices[j][1])):
-            stats = analyze_audio_block((y[i : i + BLOCKSIZE], i))
+            stats = analyze_audio_block((y[i : i + BLOCKSIZE], i), sr)
             if stats is not None:
                 stats_list.append(stats)
-            break
         df = pd.DataFrame(stats_list)
         df.to_csv("statistics.csv", mode="a", header=False, index=False)
+        del df
+        del stats_list
+        gc.collect()
     del y
     gc.collect()
 
 
 # Rest of the code remains the same
 if __name__ == "__main__":
-    for i in range(3):
-        stop_mem_recording = False
-        audio_file = "nicht_zu_laut_abspielen.wav"
+    try:
+        for i in range(NUM_RUNS):
+            stop_mem_recording = False
+            audio_file = "nicht_zu_laut_abspielen.wav"
 
-        # Start memory recording thread
-        memory_thread = threading.Thread(target=record_memory_usage)
-        memory_thread.start()
+            # Start memory recording thread
+            memory_thread = threading.Thread(target=record_memory_usage)
+            memory_thread.start()
 
-        analyze_audio_blocks(audio_file)
+            analyze_audio_blocks(audio_file)
+            stop_mem_recording = True
+            # Stop memory recording thread
+            memory_thread.join()
+    except KeyboardInterrupt:
         stop_mem_recording = True
-        # Stop memory recording thread
         memory_thread.join()
+        print("Memory recording stopped")
+        print("Exiting...")
+        exit(0)

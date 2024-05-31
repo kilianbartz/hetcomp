@@ -10,6 +10,7 @@ import mplcursors
 import math
 
 BLOCKSIZE = 0.05
+THRESHOLD = 50
 
 
 class AudioAnalyzerApp:
