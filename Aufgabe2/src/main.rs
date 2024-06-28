@@ -8,23 +8,30 @@ use tqdm::tqdm;
 
 /// Minimal example.
 fn main() {
-    let mut block_size: usize = 2055;
+    let mut block_size: usize = 2048;
     let mut path = String::new();
     let mut step = 1;
     let mut db_threshold = 50;
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("Reads a wav file and writes the major frequencies to a text file");
-        ap.refer(&mut block_size)
-            .add_option(&["-b", "--block_size"], Store, "Block size for FFT");
+        ap.refer(&mut block_size).add_option(
+            &["-b", "--block_size"],
+            Store,
+            "Block size for FFT. Default is 2048.",
+        );
         ap.refer(&mut path)
-            .add_option(&["-p", "--path"], Store, "Path to the wav file");
-        ap.refer(&mut step)
-            .add_option(&["-s", "--step"], Store, "Step size for the FFT");
+            .add_option(&["-p", "--path"], Store, "Path to the wav file")
+            .required();
+        ap.refer(&mut step).add_option(
+            &["-s", "--step"],
+            Store,
+            "Step size for the FFT. Default is 1.",
+        );
         ap.refer(&mut db_threshold).add_option(
             &["-t", "--threshold"],
             Store,
-            "Threshold for the magnitude of major frequencies in dB",
+            "Threshold for the magnitude of major frequencies in dB. Default is 50.",
         );
         ap.parse_args_or_exit();
     }
@@ -73,7 +80,7 @@ fn main() {
         stats.push((i as u64, block_stats));
     }
     // write stats to text file. Format should be: one line per block, startindex of block, all major frequencies
-    let mut file = File::create("stats.txt").expect("Failed to create file");
+    let mut file = File::create("seq_stats.txt").expect("Failed to create file");
     for block in stats.iter() {
         let mut line = format!("{}\t", block.0);
         for (freq, mag) in block.1.iter() {
