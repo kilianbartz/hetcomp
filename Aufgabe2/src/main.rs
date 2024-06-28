@@ -1,19 +1,39 @@
+use argparse::{ArgumentParser, Store};
 use hound;
 use itertools_num::linspace;
 use rustfft::{num_complex::Complex, FftPlanner};
+use std::fs::File;
 use std::io::Write;
 use tqdm::tqdm;
 
 /// Minimal example.
 fn main() {
-    const BLOCK_SIZE: usize = 2048;
-    const BLOCK_SIZE_F: f32 = BLOCK_SIZE as f32;
+    let mut block_size: usize = 2055;
+    let mut path = String::new();
+    let mut step = 1;
+    let mut db_threshold = 50;
+    {
+        let mut ap = ArgumentParser::new();
+        ap.set_description("Reads a wav file and writes the major frequencies to a text file");
+        ap.refer(&mut block_size)
+            .add_option(&["-b", "--block_size"], Store, "Block size for FFT");
+        ap.refer(&mut path)
+            .add_option(&["-p", "--path"], Store, "Path to the wav file");
+        ap.refer(&mut step)
+            .add_option(&["-s", "--step"], Store, "Step size for the FFT");
+        ap.refer(&mut db_threshold).add_option(
+            &["-t", "--threshold"],
+            Store,
+            "Threshold for the magnitude of major frequencies in dB",
+        );
+        ap.parse_args_or_exit();
+    }
+    let block_size_f = block_size as f32;
 
     // Get the path of the WAV file from the command line arguments
-    let wav_path = "/home/kilian/hetcomp/Aufgabe2/nicht_zu_laut_abspielen.wav";
 
     // Open the WAV file
-    let mut reader = hound::WavReader::open(wav_path).expect("Failed to open WAV file");
+    let mut reader = hound::WavReader::open(path).expect("Failed to open WAV file");
 
     // Create a vector to store the samples
     let samples = reader.samples::<i16>();
@@ -32,28 +52,28 @@ fn main() {
             .collect::<Vec<Complex<f32>>>();
     }
     let mut planner = FftPlanner::<f32>::new();
-    let fft = planner.plan_fft_forward(BLOCK_SIZE);
+    let fft = planner.plan_fft_forward(block_size);
     let frequencies: Vec<f32> =
-        linspace(0.0, reader.spec().sample_rate as f32 / 2.0, BLOCK_SIZE / 2).collect();
+        linspace(0.0, reader.spec().sample_rate as f32 / 2.0, block_size / 2).collect();
     let mut stats = Vec::new();
-    for i in tqdm(0..samples_vec.len() - BLOCK_SIZE) {
-        let buffer = &mut samples_vec[i..i + BLOCK_SIZE].to_vec();
+    for i in tqdm((0..samples_vec.len() - block_size).step_by(step)) {
+        let buffer = &mut samples_vec[i..i + block_size].to_vec();
         fft.process(buffer);
         let mut block_stats = Vec::new();
-        for j in 0..BLOCK_SIZE / 2 {
+        for j in 0..block_size / 2 {
             let freq = frequencies[j];
             let real = buffer[j].re;
             let imag = buffer[j].im;
-            let magnitude = 2. / BLOCK_SIZE_F * (real * real + imag * imag).sqrt();
+            let magnitude = 2. / block_size_f * (real * real + imag * imag).sqrt();
             let magnitude_db = 20.0 * magnitude.log10();
-            if magnitude_db > 50. {
+            if magnitude_db > db_threshold as f32 {
                 block_stats.push((freq as u32, magnitude_db as u32));
             }
         }
         stats.push((i as u64, block_stats));
     }
     // write stats to text file. Format should be: one line per block, startindex of block, all major frequencies
-    let mut file = std::fs::File::create("stats.txt").expect("Failed to create file");
+    let mut file = File::create("stats.txt").expect("Failed to create file");
     for block in stats.iter() {
         let mut line = format!("{}\t", block.0);
         for (freq, mag) in block.1.iter() {
