@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-g",
+                "${workspaceFolder}/Aufgabe2/audio_analysis.cpp",
+                "-o",
+                "${workspaceFolder}/Aufgabe2/audio_analysis",
+                "-lsndfile",
+                "-lfftw3",
+                "-lm"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],
+            "detail": "Generated task by Debugger.",
+            "options": {
+                "shell": {
+                    "executable": "/usr/bin/bash",
+                    "args": ["-c"]
+                }
+            }
+        }
+    ]
+}
