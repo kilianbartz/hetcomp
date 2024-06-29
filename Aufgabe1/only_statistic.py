@@ -20,7 +20,7 @@ def memory_usage() -> tuple:
     return mem_info.rss
 
 
-BLOCKSIZE = 2205  # 0.05 seconds
+BLOCKSIZE = 2048  # 0.05 seconds
 MEMORY_SAMPLING_INTERVAL = 3
 NUM_CHUNKS = 1
 DB_THRESHOLD = 50
